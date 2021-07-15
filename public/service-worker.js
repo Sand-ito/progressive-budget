@@ -1,33 +1,42 @@
 const CACHE_NAME = "static-cache-v2";
 const DATA_CACHE_NAME = "data-cache-v1";
-
 const FILES_TO_CACHE = [
-    "/",
-    "/index.html",
-    "/manifest.webmanifest",
-    "/db.js",
-    "/index.js",
-    "/styles.css",
-    "/icons/icon-192x192.png",
-    "/icons/icon-512x512.png",
+    "/",   
+    "/index.html",   
+    "index.js",   
+    "/db.js",  
+    "/styles.css",   
+    "/manifest.webmanifest",   
+    "/icons/icon-192x192.png",   
+    "/icons/icon-512x512.png",   
+    "https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css",   
+    "https://cdn.jsdelivr.net/npm/chart.js@2.8.0",
 ];
 
-self.addEventListener("install", (e) => {
-    e.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(FILES_TO_CACHE);
-        })
+// install
+self.addEventListener("install", function (evt) {
+    // pre cache image data
+    evt.waitUntil(
+        caches.open(DATA_CACHE_NAME).then((cache) => cache.add("/api/images"))
     );
 
+    // pre cache all static assets
+    evt.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
+    );
+
+    // tell the browser to activate this service worker immediately once it
+    // has finished installing
     self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
-    e.waitUntil(
+// activate
+self.addEventListener("activate", function (evt) {
+    evt.waitUntil(
         caches.keys().then(keyList => {
             return Promise.all(
                 keyList.map(key => {
-                    if (key !== DATA_CACHE_NAME && key !== CACHE_NAME) {
+                    if (key !== CACHE_NAME && key !== DATA_CACHE_NAME) {
                         console.log("Removing old cache data", key);
                         return caches.delete(key);
                     }
@@ -39,31 +48,35 @@ self.addEventListener("activate", (e) => {
     self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-    if (e.req.url.includes("/api/")) {
-      e.respondWith(
-        caches
-          .open(DATA_CACHE_NAME).then((cache) => {
-            return fetch(e.req)
-              .then((res) => {
-                if (res.status === 200) {
-                  cache.put(e.req, res.clone());
-                }
-  
-                return res;
-              })
-              .catch(() => {
-                return cache.match(e.req);
-              });
-          })
-          .catch((err) => console.log(err))
-      );
-      return;
+// fetch
+self.addEventListener("fetch", function (evt) {
+    if (evt.request.url.includes("/api/")) {
+        evt.respondWith(
+            caches.open(DATA_CACHE_NAME).then(cache => {
+                return fetch(evt.request)
+                    .then(response => {
+                        // If the response was good, clone it and store it in the cache.
+                        if (response.status === 200) {
+                            cache.put(evt.request.url, response.clone());
+                        }
+
+                        return response;
+                    })
+                    .catch(err => {
+                        // Network request failed, try to get it from the cache.
+                        return cache.match(evt.request);
+                    });
+            }).catch(err => console.log(err))
+        );
+
+        return;
     }
 
-    e.respondWith(
-      caches.match(e.req).then((res) => {
-        return res || fetch(e.req);
-      })
+    evt.respondWith(
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.match(evt.request).then(response => {
+                return response || fetch(evt.request);
+            });
+        })
     );
 });
