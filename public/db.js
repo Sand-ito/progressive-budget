@@ -1,11 +1,10 @@
 let db;
-const s = 'Store'
 
-const request = window.indexedDB.open("TransactionDB", 1);
+const request = window.indexedDB.open("budgetDB", 1);
 
 request.onupgradeneeded = (e) => {
     const db = e.target.result;
-    db.createObjectStore("s", { autoIncrement: true });
+    db.createObjectStore("budgetItems", { autoIncrement: true });
 };
 
 request.onsuccess = (e) => {
@@ -22,15 +21,15 @@ request.onerror = (e) => {
 
 
 const saveRecord = (record) => {
-    const transaction = db.transaction(["s"], "readwrite");
-    const thisStore = transaction.objectStore("s");
+    const transaction = db.transaction(["budgetItems"], "readwrite");
+    const thisStore = transaction.objectStore("budgetItems");
 
     thisStore.add(record);
 };
 
 const checkDB = () => {
-    const transaction = db.transaction(["s"], "readwrite");
-    const thisStore = transaction.objectStore("s");
+    const transaction = db.transaction(["budgetItems"], "readwrite");
+    const thisStore = transaction.objectStore("budgetItems");
     const getData = thisStore.getAll();
 
     getData.onsuccess = () => {
@@ -45,8 +44,8 @@ const checkDB = () => {
             })
                 .then((response) => response.json())
                 .then(() => {
-                    const transaction = db.transaction(["s"], "readwrite");
-                    const store = transaction.objectStore("s");
+                    const transaction = db.transaction(["budgetItems"], "readwrite");
+                    const store = transaction.objectStore("budgetItems");
                     store.clear();
                 });
         };
