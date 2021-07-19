@@ -3,6 +3,11 @@ const s = 'Store'
 
 const request = window.indexedDB.open("TransactionDB", 1);
 
+request.onupgradeneeded = (e) => {
+    const db = e.target.result;
+    db.createObjectStore("s", { autoIncrement: true });
+};
+
 request.onsuccess = (e) => {
     db = e.target.result;
 
@@ -15,10 +20,6 @@ request.onerror = (e) => {
     console.log(error);
 };
 
-request.onupgradeneeded = (e) => {
-    const db = e.target.result;
-    db.createObjectStore("s", { autoIncrement: true });
-};
 
 const saveRecord = (record) => {
     const transaction = db.transaction(["s"], "readwrite");
